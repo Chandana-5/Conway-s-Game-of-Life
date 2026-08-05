@@ -1,0 +1,69 @@
+import numpy as np
+
+grid = np.random.randint(2, size=(8, 8))
+shift = [-1, 1]
+initial_alive = []
+initial_dead = []
+final_alive = []
+final_dead = []
+
+
+def simulate(grid, generation, max_generation):
+    initial_alive.append(np.count_nonzero(grid == 1))
+    initial_dead.append(np.count_nonzero(grid == 0))
+
+    neighbors = (
+        np.roll(grid, shift[0], axis=0) +
+        np.roll(grid, shift[1], axis=0) +
+        np.roll(grid, shift[0], axis=1) +
+        np.roll(grid, shift[1], axis=1) +
+        np.roll(np.roll(grid, shift[0], axis=0), shift[0], axis=1) +
+        np.roll(np.roll(grid, shift[0], axis=0), shift[1], axis=1) +
+        np.roll(np.roll(grid, shift[1], axis=0), shift[0], axis=1) +
+        np.roll(np.roll(grid, shift[1], axis=0), shift[1], axis=1)
+    )
+
+    print("\nNeighbors\n", neighbors)
+
+    new_grid = np.zeros_like(grid)
+
+    new_grid[(grid == 1) & (neighbors < 2)] = 0
+    new_grid[(grid == 1) & ((neighbors == 2) | (neighbors == 3))] = 1
+    new_grid[(grid == 1) & (neighbors > 3)] = 0
+    new_grid[(grid == 0) & (neighbors == 3)] = 1
+
+    print(f"\nGeneration {generation}")
+    print(new_grid)
+
+    print("\nState (0=dead, 1=alive):\n", np.where(new_grid == 1, "alive", "dead"))
+
+    alive = np.count_nonzero(new_grid == 1)
+    print("\nAlive:", alive)
+
+    dead = np.count_nonzero(new_grid == 0)
+    print("Dead:", dead)
+
+    total = np.add(alive, dead)
+    print("Alive % :", np.divide(alive, total)*100)
+    final_alive.append(alive)
+    final_dead.append(dead)
+
+    if generation == max_generation:
+        return
+
+    simulate(new_grid, generation + 1, max_generation)
+
+
+max_generation = int(input("max_generation : "))
+simulate(grid, 1, max_generation)
+
+print("\n------Conway's Game of Life Report ------")
+print("Grid size :", np.shape(grid))
+print("Generations:", max_generation)
+print("Initial alive :", sum(initial_alive))
+print("Initial dead :", sum(initial_dead))
+print("Final alive :", sum(final_alive))
+print("Final dead :", sum(final_dead))
+print("Maximum Alive :", max(final_alive))
+print("Minimum Alive :", min(final_alive))
+print("Average Alive :", round(sum(final_alive) / len(final_alive), 2))
