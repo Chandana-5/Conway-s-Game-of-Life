@@ -44,7 +44,7 @@ def simulate(grid, generation, max_generation):
     print("\nAlive:", alive)
     print("Dead:", dead)
 
-    total = np.add(alive ,dead)
+    total = alive +dead
     print("Alive %:", (alive / total) * 100)
 
     alive_history.append(alive)
