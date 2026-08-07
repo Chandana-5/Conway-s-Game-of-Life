@@ -1,16 +1,19 @@
 import numpy as np
 
-grid = np.random.randint(2, size=(8, 8))
+grid = np.random.randint(2, size=(3, 3))
 shift = [-1, 1]
-initial_alive = []
-initial_dead = []
-final_alive = []
-final_dead = []
+
+initial_alive = np.count_nonzero(grid == 1)
+initial_dead = np.count_nonzero(grid == 0)
+
+alive_history = []
+dead_history = []
+
+grid_store = {}
+grid_store[0] = grid.copy()
 
 
 def simulate(grid, generation, max_generation):
-    initial_alive.append(np.count_nonzero(grid == 1))
-    initial_dead.append(np.count_nonzero(grid == 0))
 
     neighbors = (
         np.roll(grid, shift[0], axis=0) +
@@ -23,47 +26,84 @@ def simulate(grid, generation, max_generation):
         np.roll(np.roll(grid, shift[1], axis=0), shift[1], axis=1)
     )
 
-    print("\nNeighbors\n", neighbors)
-
     new_grid = np.zeros_like(grid)
 
-    new_grid[(grid == 1) & (neighbors < 2)] = 0
+    # Conway's Game of Life rules
     new_grid[(grid == 1) & ((neighbors == 2) | (neighbors == 3))] = 1
-    new_grid[(grid == 1) & (neighbors > 3)] = 0
     new_grid[(grid == 0) & (neighbors == 3)] = 1
 
     print(f"\nGeneration {generation}")
     print(new_grid)
 
-    print("\nState (0=dead, 1=alive):\n", np.where(new_grid == 1, "alive", "dead"))
+    print("\nState (0=dead, 1=alive):")
+    print(np.where(new_grid == 1, "alive", "dead"))
 
     alive = np.count_nonzero(new_grid == 1)
-    print("\nAlive:", alive)
-
     dead = np.count_nonzero(new_grid == 0)
+
+    print("\nAlive:", alive)
     print("Dead:", dead)
 
-    total = np.add(alive, dead)
-    print("Alive % :", np.divide(alive, total)*100)
-    final_alive.append(alive)
-    final_dead.append(dead)
+    total = alive + dead
+    print("Alive %:", (alive / total) * 100)
 
+    alive_history.append(alive)
+    dead_history.append(dead)
+
+    # 1. Extinction
+    if alive == 0:
+        print(f"\nExtinct at generation: {generation}")
+        return "Extinct", generation, new_grid
+
+    # 2. Stable state
+    if (new_grid == grid).all():
+        print(f"\nStable at generation: {generation}")
+        return "Stable", generation, new_grid
+
+    # 3. Oscillator
+    for k, old_grid in grid_store.items():
+        if (new_grid == old_grid).all():
+            period = generation - k
+
+            print("\nOscillating pattern detected")
+            print(f"Detected at generation: {generation}")
+            print(f"Period: {period}")
+
+            return "Oscillator", generation, new_grid
+
+    # Store current generation AFTER checking for repetition
+    grid_store[generation] = new_grid.copy()
+
+    # 4. Maximum generation
     if generation == max_generation:
-        return
+        print("\nMaximum generation reached")
+        return "Maximum generations", generation, new_grid
 
-    simulate(new_grid, generation + 1, max_generation)
+    return simulate(new_grid, generation + 1, max_generation)
 
 
-max_generation = int(input("max_generation : "))
-simulate(grid, 1, max_generation)
+max_generation = int(input("Max generations: "))
 
-print("\n------Conway's Game of Life Report ------")
-print("Grid size :", np.shape(grid))
-print("Generations:", max_generation)
-print("Initial alive :", sum(initial_alive))
-print("Initial dead :", sum(initial_dead))
-print("Final alive :", sum(final_alive))
-print("Final dead :", sum(final_dead))
-print("Maximum Alive :", max(final_alive))
-print("Minimum Alive :", min(final_alive))
-print("Average Alive :", round(sum(final_alive) / len(final_alive), 2))
+result, stopped_generation, final_grid = simulate(
+    grid, 1, max_generation
+)
+
+
+print("\n------ Conway's Game of Life Report ------")
+
+print("Grid size:", np.shape(grid))
+print("Max generations:", max_generation)
+print("Actual generations simulated:", stopped_generation)
+
+print("Initial alive:", initial_alive)
+print("Initial dead:", initial_dead)
+
+print("Final alive:", alive_history[-1])
+print("Final dead:", dead_history[-1])
+
+print("Maximum alive:", max(alive_history))
+print("Minimum alive:", min(alive_history))
+print("Average alive:", round(np.mean(alive_history), 2))
+
+print("Result:", result)
+print("Stopped at generation:", stopped_generation)
